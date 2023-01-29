@@ -18,14 +18,22 @@ class Forbok:
         self.n_historic_periods = config['n_historic_periods']
 
         # find data in folder structure
-        self.data = self.init_data()
+        self.init_data()
         
 
     def __repr__(self):
         """
         String representation of object.
         """
-        return f"{{'name': {self.name}, 'n_historic_periods': {self.n_historic_periods}}}"
+        pdb.set_trace()
+        return f"""Forbok settings
+name:\t\t\t{self.name}
+n_historic_periods:\t{self.n_historic_periods}
+
+Data contents
+Number of periods:\t{    len(self.data)}
+Number of categories:\t{ len( set( [ category for period in self.data.values() for category in period ] ) ) }
+Number of invoices:\t{   len( [ invoice for period in self.data.values() for category in period.values() for invoice in category.values() ] ) }"""
 
 
 
