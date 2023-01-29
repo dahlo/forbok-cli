@@ -1,4 +1,9 @@
 import os
+import logging
+from datetime import datetime
+import re
+import pdb
+
 
 class Forbok:
 
@@ -13,11 +18,13 @@ class Forbok:
         self.n_historic_periods = config['n_historic_periods']
 
         # find data in folder structure
-        periods = self.init_data()
+        self.data = self.init_data()
         
 
     def __repr__(self):
-
+        """
+        String representation of object.
+        """
         return f"{{'name': {self.name}, 'n_historic_periods': {self.n_historic_periods}}}"
 
 
@@ -29,6 +36,9 @@ class Forbok:
         List all files and folders in the data/ folder and structures the data.
         """
         
+        # TODO
+        # sort the period file list and only parse the requested year and the n_historic_periods previous periods
+
         # find period folders
         for period in os.listdir(os.path.join(self.script_root, 'data')):
 
@@ -39,15 +49,48 @@ class Forbok:
             # init
             self.data[period] = {}
 
-            print(f"{period}")
+            logging.info(f"Parsing {period}")
             # find categories in period folder
             for category in os.listdir(os.path.join(self.script_root, 'data', period)):
+
+                # init
+                self.data[period][category] = {}
             
-                print(f"\t{category}")
+                logging.info(f"Parsing    {category}")
 
                 # find invoices in category
                 for invoice_file in os.listdir(os.path.join(self.script_root, 'data', period, category)):
-                    print(f"\t\t{invoice_file}")
+
+                    logging.debug(f"Parsing        {invoice_file}")
+
+                    # parse the file name
+                    match = re.search("^([0-9-]+)_([0-9-,\.]+)_(.+)$", invoice_file)
+
+                    if match:
+                        
+                        # readability
+                        file_date, amount, org_file_name = match.groups()
+
+                        # validate date
+                        file_date = datetime.strptime(file_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+
+
+                        # replace commas in amount and convert to number
+                        amount = float(amount.replace(',' , '.'))
+
+                        # save invoice data
+                        self.data[period][category][invoice_file] = {
+                                                                        'filename'  : org_file_name,
+                                                                        'date'      : file_date,
+                                                                        'amount'    : amount,
+                                                                    }
+
+
+
+
+
+                    else:
+                        logging.warn(f"File name not matching pattern, ignored: {os.path.join('data', period, category, invoice_file)}")
 
 
 
@@ -69,8 +112,3 @@ class Forbok:
 
 
 
-class Invoice:
-
-    def __init__(amount):
-
-        self.amount = amount
