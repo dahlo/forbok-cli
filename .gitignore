@@ -1,5 +1,5 @@
 __pycache__
 *.sw*
-data/
+invoices/
 reports/
 config.yaml

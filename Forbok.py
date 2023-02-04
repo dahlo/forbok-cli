@@ -11,15 +11,16 @@ class Forbok:
 
         # initialize values
         self.script_root = os.path.dirname(os.path.realpath(__file__))
-        self.data = {}
+        self.invoice_folder_name = 'invoices'
 
         # add values from config file
         self.name               = config['name']
         self.n_historic_periods = config['n_historic_periods']
 
         # find data in folder structure
-        self.init_data()
-        
+        self.invoices = self.parse_invoices()
+       
+        self.summaries = self.make_summaries()
 
     def __repr__(self):
         """
@@ -31,48 +32,53 @@ name:\t\t\t{self.name}
 n_historic_periods:\t{self.n_historic_periods}
 
 Data contents
-Number of periods:\t{    len(self.data)}
-Number of categories:\t{ len( set( [ category for period in self.data.values() for category in period ] ) ) }
-Number of invoices:\t{   len( [ invoice for period in self.data.values() for category in period.values() for invoice in category.values() ] ) }"""
+Number of periods:\t{    len(self.invoices)}
+Number of categories:\t{ len( set( [ category for period in self.invoices.values() for category in period ] ) ) }
+Number of invoices:\t{   len( [ invoice for period in self.invoices.values() for category in period.values() for invoice in category.values() ] ) }"""
 
 
 
 
 
-    def init_data(self):
+    def parse_invoices(self):
         """
-        List all files and folders in the data/ folder and structures the data.
+        List all files and folders in the invoices folder and structures the data.
         """
         
         # TODO
         # sort the period file list and only parse the requested year and the n_historic_periods previous periods
-
+        
+        invoices = {}
         # find period folders
-        for period in os.listdir(os.path.join(self.script_root, 'data')):
+        for period in os.scandir(os.path.join(self.script_root, self.invoice_folder_name)):
 
-            # skip .gitkeep file
-            if period == '.gitkeep':
+            # skip files
+            if period.is_file():
                 continue
 
             # init
-            self.data[period] = {}
+            invoices[period.name] = {}
 
-            logging.info(f"Parsing {period}")
+            logging.info(f"Parsing {period.name}")
             # find categories in period folder
-            for category in os.listdir(os.path.join(self.script_root, 'data', period)):
+            for category in os.scandir(os.path.join(self.script_root, self.invoice_folder_name, period.name)):
+
+                # skip files
+                if category.is_file():
+                    continue
 
                 # init
-                self.data[period][category] = {}
+                invoices[period.name][category.name] = {}
             
-                logging.info(f"Parsing    {category}")
+                logging.info(f"Parsing    {category.name}")
 
                 # find invoices in category
-                for invoice_file in os.listdir(os.path.join(self.script_root, 'data', period, category)):
+                for invoice_file in os.scandir(os.path.join(self.script_root, self.invoice_folder_name, period.name, category.name)):
 
-                    logging.debug(f"Parsing        {invoice_file}")
+                    logging.debug(f"Parsing        {invoice_file.name}")
 
                     # parse the file name
-                    match = re.search("^([0-9-]+)_([0-9-,\.]+)_(.+)$", invoice_file)
+                    match = re.search("^([0-9-]+)_([0-9-,\.]+)_(.+)$", invoice_file.name)
 
                     if match:
                         
@@ -87,7 +93,7 @@ Number of invoices:\t{   len( [ invoice for period in self.data.values() for cat
                         amount = float(amount.replace(',' , '.'))
 
                         # save invoice data
-                        self.data[period][category][invoice_file] = {
+                        invoices[period.name][category.name][invoice_file.name] = {
                                                                         'filename'  : org_file_name,
                                                                         'date'      : file_date,
                                                                         'amount'    : amount,
@@ -98,7 +104,10 @@ Number of invoices:\t{   len( [ invoice for period in self.data.values() for cat
 
 
                     else:
-                        logging.warn(f"File name not matching pattern, ignored: {os.path.join('data', period, category, invoice_file)}")
+                        logging.warn(f"File name not matching pattern, ignored: {os.path.join(self.invoice_folder_name, period.name, category.name, invoice_file.name)}")
+
+
+        return invoices
 
 
 
@@ -107,10 +116,17 @@ Number of invoices:\t{   len( [ invoice for period in self.data.values() for cat
 
 
 
+    def make_summaries(self):
+        """
+        Creates summaries of the collected invocies.
+        """
+
+        # sum each category per period
+        for period in self.invoices:
+            for category in self.invoices[period]
 
 
-
-
+        return
 
 
 
