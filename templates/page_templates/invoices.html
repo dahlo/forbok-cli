@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+
+{% block header %}
+
+            <header class="bg-dark py-5">
+                <div class="container px-5">
+                    <div class="row gx-5 align-items-center justify-content-center">
+                        <div class="col-lg-12 col-xl-10 col-xxl-8">
+                            <div class="my-5 text-center text-xl-start">
+                                <h1 class="display-5 fw-bolder text-white mb-2">{{ name }}</h1>
+                                <h3>Verifikat</h3>
+                                <p class="lead fw-normal text-white-50 mb-4">
+                                    Antal fakturor: {{ n_invoices  | pretty_number}}<br>
+                                    Utgifter:       {{ total_out   | round(2) | pretty_number}}<br>
+                                    Intäkter:       {{ total_in    | round(2) | pretty_number}}<br>
+                                    Balans:         {{ balance     | round(2) | pretty_number}}<br>
+                                </p>
+                                <p class="lead fw-normal text-white-50 mb-4">
+                                    Kontosaldo start: {{ period_info.get("account_start", "-")  | pretty_number}}<br>
+                                    Kontosaldo slut:  {{ period_info.get("account_end"  , "-")  | pretty_number}}<br>
+                                    Diff mot verifikat:  {{ ((period_info.get("account_end"  , 0) - period_info.get("account_start"  , 0)) - balance)  | pretty_number}}<br>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+{% endblock header %}
+
+
+{% block content %}
+
+            <section class="py-5" id="features">
+                <div class="container px-5 my-5">
+                    <div class="row gx-5">
+                        {% for category in invoices.category.unique() | sort %}
+                        <div class="col-lg-12 mb-5 mb-lg-0"><h2 class="fw-bolder mt-5">{{ category | capitalize }}</h2><hr></div>
+                        <div class="col-lg-12">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Datum</th>
+                                        <th scope="col" class="text-right">Kostnad</th>
+                                        <th scope="col">Namn</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for index,invoice in invoices[invoices.category == category].iterrows()%}
+                                    <tr>
+                                        <td>{{ invoice.date }}</td>
+                                        <td class="text-right">{{ invoice.amount | pretty_number }}</td>
+                                        <td><a href="/viewerjs/#/invoices/{{period}}/{{category}}/{{invoice.file_name}}">{{ invoice.invoice_name }}</a></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+{% endblock content %}

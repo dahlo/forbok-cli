@@ -10,9 +10,15 @@
                             <div class="my-5 text-center text-xl-start">
                                 <h1 class="display-5 fw-bolder text-white mb-2">{{ name }}</h1>
                                 <p class="lead fw-normal text-white-50 mb-4">
-                                Antal fakturor: {{ n_invoices }}<br>
-                                Utgifter: {{ total_out }}<br>
-                                Intäkter: {{ total_in }}<br>
+                                    Antal fakturor: {{ n_invoices  | pretty_number}}<br>
+                                    Utgifter:       {{ total_out   | round(2) | pretty_number}}<br>
+                                    Intäkter:       {{ total_in    | round(2) | pretty_number}}<br>
+                                    Balans:         {{ balance     | round(2) | pretty_number}}<br>
+                                </p>
+                                <p class="lead fw-normal text-white-50 mb-4">
+                                    Kontosaldo start: {{ period_info.get("account_start", "-")  | pretty_number}}<br>
+                                    Kontosaldo slut:  {{ period_info.get("account_end"  , "-")  | pretty_number}}<br>
+                                    Diff mot verifikat:  {{ ((period_info.get("account_end"  , 0) - period_info.get("account_start"  , 0)) - balance)  | pretty_number}}<br>
                                 </p>
                             </div>
                         </div>
@@ -28,60 +34,121 @@
             <section class="py-5" id="features">
                 <div class="container px-5 my-5">
                     <div class="row gx-5">
-                        <div class="col-lg-12 mb-5 mb-lg-0"><h2 class="fw-bolder mb-0">Utgifter</h2><hr></div>
+                        {% if period_info.get('report') %}
+                        <h2 class="fw-bolder">Förvaltningsberättelse</h2><hr>
+                        {{ period_info['report'] }}
+
+                        {% endif %}
+                        
+                        <div class="col-lg-12 mb-5 mb-lg-0"><h2 class="fw-bolder mt-5">Utgifter</h2><hr></div>
+                        <script src="/js/chart.js"></script>
+                        <div class="col-lg-12 mb-5 mb-lg-0">
+                            <canvas id="expenses_bar_chart" height="80"></canvas>
+                        </div>
+
+                        <script>
+                          const ctx = document.getElementById('expenses_bar_chart');
+            
+                          new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: {{ custom_data['2_year_bar_chart_labels']['out'] }},
+                                datasets: [
+                                    {% for i in range(2) | reverse %}
+                                    {
+                                      label: '{{ period_order[i] }}',
+                                      data: {{ custom_data['2_year_bar_chart_data']['out'][i] }},
+                                      borderWidth: 1
+                                    },
+                                    {% endfor %}
+                                ]
+                            },
+                            options: {
+                              scales: {
+                                y: {
+                                  beginAtZero: true
+                                }
+                              }
+                            }
+                          });
+                        </script>
+
                         <div class="col-lg-12">
-                            <table class="table">
+                            <table class="table table-sm table-striped">
                                 <thead>
                                     <tr>
                                         <th scope="col">Kategori</th>
-                                        <th scope="col">{{ prev_year }}</th>
-                                        <th scope="col">{{ cur_year }}</th>
-                                        <th scope="col">{{ diff }}</th>
+                                        <th scope="col" class="text-right">{{ period_order[1] }}</th>
+                                        <th scope="col" class="text-right">Skillnad</th>
+                                        <th scope="col" class="text-right">{{ period_order[0] }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {% for category in cats_2['out'] %}
                                     <tr>
-                                        <th scope="row">1</th>
-                                        <td>Mark</td>
-                                        <td>Otto</td>
-                                        <td>@mdo</td>
+                                        <th>{{ category | capitalize }}</th>
+                                        <td class="text-right">{{ ordered_cat_sums[1]['out'].get(category, '-') | pretty_number }}</td>
+                                        <td class="text-right">{{ (ordered_cat_sums[0]['out'].get(category, 0) - ordered_cat_sums[1]['out'].get(category, 0)) | pretty_number }}</td>
+                                        <td class="text-right">{{ ordered_cat_sums[0]['out'].get(category, '-') | pretty_number }}</td>
                                     </tr>
-                                    <tr>
-                                        <th scope="row">2</th>
-                                        <td>Jacob</td>
-                                        <td>Thornton</td>
-                                        <td>@fat</td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row">3</th>
-                                        <td>Larry</td>
-                                        <td>the Bird</td>
-                                        <td>@twitter</td>
-                                    </tr>
+                                    {% endfor %}
                                 </tbody>
                             </table>
-                            <div class="row gx-5 row-cols-1 row-cols-md-2">
-                                <div class="col mb-5 h-100">
-                                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-collection"></i></div>
-                                    <h2 class="h5">Featured title</h2>
-                                    <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                                </div>
-                                <div class="col mb-5 h-100">
-                                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-building"></i></div>
-                                    <h2 class="h5">Featured title</h2>
-                                    <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                                </div>
-                                <div class="col mb-5 mb-md-0 h-100">
-                                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-toggles2"></i></div>
-                                    <h2 class="h5">Featured title</h2>
-                                    <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                                </div>
-                                <div class="col h-100">
-                                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-toggles2"></i></div>
-                                    <h2 class="h5">Featured title</h2>
-                                    <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                                </div>
-                            </div>
+                        </div>
+                        <br/>
+                        <br/>
+                        <div class="col-lg-12 mb-5 mb-lg-0"><h2 class="fw-bolder mt-5">Intäkter</h2><hr></div>
+                        <div class="col-lg-12 mb-5 mb-lg-0">
+                            <canvas id="income_bar_chart" height="80"></canvas>
+                        </div>
+
+                        <script>
+                          const ctx2 = document.getElementById('income_bar_chart');
+            
+                          new Chart(ctx2, {
+                            type: 'bar',
+                            data: {
+                                labels: {{ custom_data['2_year_bar_chart_labels']['in'] }},
+                                datasets: [
+                                    {% for i in range(2) | reverse %}
+                                    {
+                                      label: '{{ period_order[i] }}',
+                                      data: {{ custom_data['2_year_bar_chart_data']['in'][i] }},
+                                      borderWidth: 1
+                                    },
+                                    {% endfor %}
+                                ]
+                            },
+                            options: {
+                              scales: {
+                                y: {
+                                  beginAtZero: true
+                                }
+                              }
+                            }
+                          });
+                        </script>
+                        <div class="col-lg-12">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Kategori</th>
+                                        <th scope="col" class="text-right">{{ period_order[1] }}</th>
+                                        <th scope="col" class="text-right">Skillnad</th>
+                                        <th scope="col" class="text-right">{{ period_order[0] }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for category in cats_2['in'] %}
+                                    <tr>
+                                        <th>{{ category | capitalize }}</th>
+                                        <td class="text-right">{{ (-ordered_cat_sums[1]['in'][category] if category in ordered_cat_sums[1]['in'].keys() else '-') | pretty_number }}</td>
+                                        <td class="text-right">{{ (-ordered_cat_sums[0]['in'].get(category, 0) - -ordered_cat_sums[1]['in'].get(category, 0))     | pretty_number }}</td>
+                                        <td class="text-right">{{ (-ordered_cat_sums[0]['in'][category] if category in ordered_cat_sums[0]['in'].keys() else '-') | pretty_number }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
