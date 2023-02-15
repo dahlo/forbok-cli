@@ -51,7 +51,7 @@
                                     <tr>
                                         <td>{{ invoice.date }}</td>
                                         <td class="text-right">{{ invoice.amount | pretty_number }}</td>
-                                        <td><a href="/viewerjs/#/invoices/{{period}}/{{category}}/{{invoice.file_name}}">{{ invoice.invoice_name }}</a></td>
+                                        <td><a title="Förhandsgranska" href="viewerjs/#../invoices/{{period}}/{{category}}/{{invoice.file_name}}"><i class="bi bi-search"></i></a> <a title="Ladda ner {{ invoice.invoice_name }}" href="invoices/{{period}}/{{category}}/{{invoice.file_name}}">{{ invoice.invoice_name }}</a></td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
