@@ -47,21 +47,6 @@ parser = argparse.ArgumentParser(
                     description = 'Create förenklad bokföring reports from an archive of invoices.',
                     epilog = 'GitHub: https://github.com/dahlo/forbok-cli',
                     )
-parser.add_argument('-i',
-                    '--input',
-                    help=f'Where the invoices are stored. (default: data{os.sep})',
-                    default='data',
-                    )
-parser.add_argument('-r',
-                    '--report_name',
-                    help=f'Name of the report. (default: same as period name)',
-                    default=None,
-                    )
-parser.add_argument('-o',
-                    '--output',
-                    help=f'Where the report will be saved. (default: reports{os.sep})',
-                    default='reports',
-                    )
 parser.add_argument('-c',
                     '--config',
                     help=f'Config file to use. (default: config.yaml)',
@@ -72,18 +57,37 @@ parser.add_argument('-d',
                     help=f'Print debug information while running.',
                     action='store_true'
                     )
+parser.add_argument('-e',
+                    '--exclude_plot',
+                    help=f'Names of categories to exclude from plots, comma-separated.',
+                    )
+parser.add_argument('-i',
+                    '--input',
+                    help=f'Where the invoices are stored. (default: data{os.sep})',
+                    default='data',
+                    )
 parser.add_argument('-n',
                     '--n_historic',
                     help=f'Override n_historic_periods in config file.',
                     type=int,
                     )
-parser.add_argument('-p',
-                    '--period_order',
-                    help=f'Override the order of the previous periods. Comma-separated period names. (default: sorted by name).',
-                    )
 parser.add_argument('-N',
                     '--name',
                     help=f'Override name in config file.',
+                    )
+parser.add_argument('-o',
+                    '--output',
+                    help=f'Where the report will be saved. (default: reports{os.sep})',
+                    default='reports',
+                    )
+parser.add_argument('-p',
+                    '--period_order',
+                    help=f'Override the order of the previous periods. Comma-separated period names. (default: sorted by name, reversed).',
+                    )
+parser.add_argument('-r',
+                    '--report_name',
+                    help=f'Name of the report. (default: same as period name)',
+                    default=None,
                     )
 parser.add_argument('period',
                     help='Which period to build report for.',
@@ -122,7 +126,7 @@ forbok = Forbok(config, args.period)
 if args.period_order:
     period_order = args.period_order.split(",")
 else:
-    period_order = sorted(forbok.invoices.period.unique())
+    period_order = sorted(forbok.invoices.period.unique(), reverse=True)
 
 # make sure all periods exist
 for period in period_order:
@@ -139,6 +143,13 @@ if len(period_order) < 5:
 
 # make sure period list is at most 5 long
 period_order = period_order[:5]
+
+# make list of plot exclusions
+exclude_plot = []
+if args.exclude_plot:
+    exclude_plot = args.exclude_plot.split(',')
+
+
 
 # get the ordered category sums 
 ordered_cat_sums = forbok.get_ordered_cat_sums(periods = period_order)
@@ -191,6 +202,15 @@ custom_data['2_year_bar_chart_data']['in' ] = []
 custom_data['2_year_bar_chart_data']['in' ].append([ -ordered_cat_sums[0]['in' ].get(category, 0) for category in cats_2['in' ] ])
 custom_data['2_year_bar_chart_data']['in' ].append([ -ordered_cat_sums[1]['in' ].get(category, 0) for category in cats_2['in' ] ])
 
+
+# create 5-year category history values
+custom_data['category_history_values'] = forbok.get_category_history(period_order)
+
+# create the category history plot data
+custom_data['category_history_plot_data'] = [ {'category':category, 'data': [ {'x': period, 'y': custom_data['category_history_values'][category][period] } for period in reversed(period_order)  ]} for category in sorted(custom_data['category_history_values']) ]
+
+
+
 # package variables
 payload = { 'title'            : f"Förenklat bokslut - {config['name']}",
             'name'             : f"{config['name']} - {report_name}",
@@ -204,7 +224,9 @@ payload = { 'title'            : f"Förenklat bokslut - {config['name']}",
             'cats_2'           : cats_2, 
             'cats_5'           : cats_5,
             'custom_data'      : custom_data,
+            'exclude_plot'     : exclude_plot,
           }
+
 
 # render template
 html_contents = template.render(payload)
@@ -212,19 +234,19 @@ html_file_name = os.path.join(forbok.script_root, args.output, report_name, 'ind
 with open(html_file_name, 'w') as html_file:
     html_file.write(html_contents)
 
-# save pdf version of report
-pdf_file_name = os.path.join(forbok.script_root, args.output, report_name, 'annual_account.pdf')
-with open(pdf_file_name, 'w+b') as pdf_file:
-    pisa.CreatePDF(
-            src=html_contents,
-            dest=pdf_file)
+## save pdf version of report
+#pdf_file_name = os.path.join(forbok.script_root, args.output, report_name, 'annual_account.pdf')
+#with open(pdf_file_name, 'w+b') as pdf_file:
+#    pisa.CreatePDF(
+#            src=html_contents,
+#            dest=pdf_file)
     
 
 
 
 
 
-pdb.set_trace()
+#pdb.set_trace()
 # render the invoice page
 payload = { 'title'            : f"Förenklat bokslut - {config['name']}",
             'name'             : f"{config['name']} - {report_name}",
@@ -232,7 +254,7 @@ payload = { 'title'            : f"Förenklat bokslut - {config['name']}",
             'total_in'         :     -forbok.invoices[(forbok.invoices.period == args.period) & (forbok.invoices.amount <  0)].sum()['amount'],
             'total_out'        :      forbok.invoices[(forbok.invoices.period == args.period) & (forbok.invoices.amount >= 0)].sum()['amount'],
             'balance'          :     -forbok.invoices[ forbok.invoices.period == args.period ].sum()['amount'],
-            'invoices'         : forbok.invoices,
+            'invoices'         : forbok.invoices[forbok.invoices.period == args.period],
             'period_info'      : forbok.period_info,
             'period'           : args.period,
 

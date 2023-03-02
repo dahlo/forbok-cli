@@ -172,6 +172,49 @@ Number of invoices:\t{   len( [ invoice for period in self.invoices.values() for
 
 
 
+    def get_category_history(self, periods):
+        """
+        Returns a dict of category histories.
+        Category name is the key, and for each category there is a dict with period names as keys.
+        The value for each period name key is the sum of that category in that period.
+        """
+        # init
+        category_history = {}
+
+        # for each category in the period span
+        for category in self.invoices[self.invoices.period.isin(periods)].category.unique():
+
+            # for each period
+            for period in periods:
+
+                try:
+
+                    # get the category sum if it exists
+                    period_cat_amounts = self.invoices[(self.invoices.period == period) & (self.invoices.category == category)].amount
+
+                    # sum the amounts if there are any
+                    if len(period_cat_amounts) > 0:
+                        period_cat_sum = period_cat_amounts.sum()
+
+                    # if there are no amounts for this category this year, use placeholder
+                    else:
+                        period_cat_sum = '-'
+
+                    # save the value if it exists
+                    category_history[category][period] = period_cat_sum
+
+                # if it is the first time a category is seen
+                except KeyError:
+                    category_history[category] = {}
+                    category_history[category][period] = period_cat_sum
+
+        return category_history
+
+
+
+
+
+
     def make_summaries(self):
         """
         Creates summaries of the collected invocies.

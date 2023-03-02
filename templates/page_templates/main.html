@@ -8,18 +8,21 @@
                     <div class="row gx-5 align-items-center justify-content-center">
                         <div class="col-lg-12 col-xl-10 col-xxl-8">
                             <div class="my-5 text-center text-xl-start">
-                                <h1 class="display-5 fw-bolder text-white mb-2">{{ name }}</h1>
-                                <p class="lead fw-normal text-white-50 mb-4">
-                                    Antal fakturor: {{ n_invoices  | pretty_number}}<br>
-                                    Utgifter:       {{ total_out   | round(2) | pretty_number}}<br>
-                                    Intäkter:       {{ total_in    | round(2) | pretty_number}}<br>
-                                    Balans:         {{ balance     | round(2) | pretty_number}}<br>
-                                </p>
-                                <p class="lead fw-normal text-white-50 mb-4">
-                                    Kontosaldo start: {{ period_info.get("account_start", "-")  | pretty_number}}<br>
-                                    Kontosaldo slut:  {{ period_info.get("account_end"  , "-")  | pretty_number}}<br>
-                                    Diff mot verifikat:  {{ ((period_info.get("account_end"  , 0) - period_info.get("account_start"  , 0)) - balance)  | pretty_number}}<br>
-                                </p>
+                                <h1 class="fw-bolder text-white text-center mb-2">{{ name }}</h1>
+                                <h3 class="text-white text-center">Förenklat bokslut</h3>
+                                <div class="row justify-content-md-center">
+                                    <div class="col-4 lead fw-normal text-white-50">
+                                        Antal fakturor: {{ n_invoices  | pretty_number}}<br>
+                                        Utgifter:       {{ total_out   | round(2) | pretty_number}}<br>
+                                        Intäkter:       {{ total_in    | round(2) | pretty_number}}<br>
+                                        Balans:         {{ balance     | round(2) | pretty_number}}<br>
+                                    </div>
+                                    <div class="col-4 lead fw-normal text-white-50">
+                                        Kontosaldo start: 	 {{ period_info.get("account_start", "-")  | pretty_number}}<br>
+                                        Kontosaldo slut:  	 {{ period_info.get("account_end"  , "-")  | pretty_number}}<br>
+                                        Diff mot verifikat:  {{ ((period_info.get("account_end"  , 0)  - period_info.get("account_start"  , 0)) - balance)  | pretty_number}}<br>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -146,6 +149,62 @@
                                         <td class="text-right">{{ (-ordered_cat_sums[0]['in'].get(category, 0) - -ordered_cat_sums[1]['in'].get(category, 0))     | pretty_number }}</td>
                                         <td class="text-right">{{ (-ordered_cat_sums[0]['in'][category] if category in ordered_cat_sums[0]['in'].keys() else '-') | pretty_number }}</td>
                                     </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-lg-12 mb-5 mb-lg-0"><h2 class="fw-bolder mt-5">Historisk översikt, löpande kostnader</h2><hr></div>
+                        <div class="col-lg-12 mb-5 mb-lg-0">
+                            <canvas id="historic_category_line_chart" height="80"></canvas>
+                        </div>
+
+                        <script>
+                          const ctx3 = document.getElementById('historic_category_line_chart');
+            
+                          new Chart(ctx3, {
+                            type: 'line',
+                            data: {
+                                datasets: [
+                                    {% for plot_data in custom_data['category_history_plot_data'] %}
+                                        {% if plot_data['category'] not in exclude_plot %}
+                                            {
+                                              label: "{{ plot_data['category'] | capitalize }}",
+                                              data: {{ plot_data['data'] }},
+                                              borderWidth: 3
+                                            },
+                                        {% endif %}
+                                    {% endfor %}
+                                ]
+                            },
+                            options: {
+                              scales: {
+                                y: {
+                                  min: 0
+                                }
+                              }
+                            }
+                          });
+                        </script>
+                        <div class="col-lg-12">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Kategori</th>
+                                        {% for period in period_order | reverse %}
+                                            <th scope="col" class="text-right">{{ period }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for category, category_data in custom_data['category_history_values'].items() | sort %}
+                                        {% if category not in exclude_plot %}
+                                            <tr>
+                                                <th>{{ category | capitalize }}</th>
+                                                {% for period in period_order | reverse %}
+                                                    <td class="text-right">{{ category_data.get(period, '-') | pretty_number }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endif %}
                                     {% endfor %}
                                 </tbody>
                             </table>

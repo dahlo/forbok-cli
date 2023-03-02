@@ -8,19 +8,21 @@
                     <div class="row gx-5 align-items-center justify-content-center">
                         <div class="col-lg-12 col-xl-10 col-xxl-8">
                             <div class="my-5 text-center text-xl-start">
-                                <h1 class="display-5 fw-bolder text-white mb-2">{{ name }}</h1>
-                                <h3>Verifikat</h3>
-                                <p class="lead fw-normal text-white-50 mb-4">
-                                    Antal fakturor: {{ n_invoices  | pretty_number}}<br>
-                                    Utgifter:       {{ total_out   | round(2) | pretty_number}}<br>
-                                    Intäkter:       {{ total_in    | round(2) | pretty_number}}<br>
-                                    Balans:         {{ balance     | round(2) | pretty_number}}<br>
-                                </p>
-                                <p class="lead fw-normal text-white-50 mb-4">
-                                    Kontosaldo start: {{ period_info.get("account_start", "-")  | pretty_number}}<br>
-                                    Kontosaldo slut:  {{ period_info.get("account_end"  , "-")  | pretty_number}}<br>
-                                    Diff mot verifikat:  {{ ((period_info.get("account_end"  , 0) - period_info.get("account_start"  , 0)) - balance)  | pretty_number}}<br>
-                                </p>
+                                <h1 class="fw-bolder text-white text-center mb-2">{{ name }}</h1>
+                                <h3 class="text-white text-center">Verifikat</h3>
+                                <div class="row justify-content-md-center">
+                                    <div class="col-4 lead fw-normal text-white-50">
+                                        Antal fakturor: {{ n_invoices  | pretty_number}}<br>
+                                        Utgifter:       {{ total_out   | round(2) | pretty_number}}<br>
+                                        Intäkter:       {{ total_in    | round(2) | pretty_number}}<br>
+                                        Balans:         {{ balance     | round(2) | pretty_number}}<br>
+                                    </div>
+                                    <div class="col-4 lead fw-normal text-white-50">
+                                        Kontosaldo start: {{ period_info.get("account_start", "-")  | pretty_number}}<br>
+                                        Kontosaldo slut:  {{ period_info.get("account_end"  , "-")  | pretty_number}}<br>
+                                        Diff mot verifikat:  {{ ((period_info.get("account_end"  , 0) - period_info.get("account_start"  , 0)) - balance)  | pretty_number}}<br>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -41,19 +43,23 @@
                             <table class="table table-sm table-striped">
                                 <thead>
                                     <tr>
-                                        <th scope="col">Datum</th>
-                                        <th scope="col" class="text-right">Kostnad</th>
-                                        <th scope="col">Namn</th>
+                                        <th scope="col" style="width: 10%">Datum</th>
+                                        <th scope="col" style="width: 10%" class="text-right">Kostnad</th>
+                                        <th scope="col" style="width: 80%">Namn</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for index,invoice in invoices[invoices.category == category].iterrows()%}
+                                    {% for index,invoice in invoices[invoices.category == category].sort_values('date').iterrows()%}
                                     <tr>
                                         <td>{{ invoice.date }}</td>
                                         <td class="text-right">{{ invoice.amount | pretty_number }}</td>
                                         <td><a title="Förhandsgranska" href="viewerjs/#../invoices/{{period}}/{{category}}/{{invoice.file_name}}"><i class="bi bi-search"></i></a> <a title="Ladda ner {{ invoice.invoice_name }}" href="invoices/{{period}}/{{category}}/{{invoice.file_name}}">{{ invoice.invoice_name }}</a></td>
                                     </tr>
                                     {% endfor %}
+                                    <tr class="table-active">
+                                        <td><b>Summa:</b></td>
+                                        <td class="text-right"><b>{{ invoices[invoices.category == category].amount.sum() | pretty_number }}</b></td>
+                                        <td></td>
                                 </tbody>
                             </table>
                         </div>
